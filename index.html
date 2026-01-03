@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Synthetic Income Architect | PMCC Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
+        body { font-family: 'Inter', sans-serif; background-color: #0f172a; color: #f8fafc; }
+        .glass { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.1); }
+        .gradient-text { background: linear-gradient(90deg, #38bdf8, #818cf8); -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+        input:focus { outline: none; border-color: #38bdf8; ring: 2px #38bdf8; }
+        .ticker-chip { background: rgba(56, 189, 248, 0.1); border: 1px solid rgba(56, 189, 248, 0.2); }
+    </style>
+</head>
+<body class="min-h-screen p-4 md:p-8">
+
+    <div class="max-w-6xl mx-auto">
+        <header class="mb-12 text-center">
+            <h1 class="text-4xl font-bold mb-2 gradient-text">Synthetic Income Architect</h1>
+            <p class="text-slate-400 text-lg">Portfolio Budgeting & PMCC Yield Engine</p>
+        </header>
+
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
+            <!-- Configuration Panel -->
+            <div class="lg:col-span-2 glass p-6 rounded-2xl">
+                <h2 class="text-xl font-semibold mb-6 flex items-center">
+                    <i class="fas fa-wallet mr-2 text-sky-400"></i> Capital & Portfolio Settings
+                </h2>
+                
+                <div class="space-y-6">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-2">Total Capital Outlay ($)</label>
+                            <input type="number" id="totalCapitalInput" value="20000" onchange="generateStrategy()"
+                                   class="w-full bg-slate-900 border border-slate-700 rounded-lg py-3 px-4 text-white font-mono text-lg focus:border-sky-500 transition-colors">
+                            <p class="text-[10px] text-slate-500 mt-1">Budget will be split equally across selected tickers.</p>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-400 mb-2">Assignment Preference</label>
+                            <select id="riskProfile" onchange="generateStrategy()" class="w-full bg-slate-900 border border-slate-700 rounded-lg py-3 px-4 text-white h-[52px]">
+                                <option value="safe">Not OK (0.12 Delta - Safety First)</option>
+                                <option value="aggressive">OK (0.35 Delta - Yield Focused)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-sm font-medium text-slate-400 mb-2">Ticker Portfolio (Max 6)</label>
+                        <input type="text" id="tickerInput" value="AMZN, NVDA, MSFT, LLY, VRT, CRC" 
+                               class="w-full bg-slate-900 border border-slate-700 rounded-lg py-3 px-4 text-white uppercase tracking-widest mb-2">
+                    </div>
+
+                    <button onclick="generateStrategy()" class="w-full bg-sky-600 hover:bg-sky-500 text-white font-bold py-4 rounded-xl transition-all duration-300 shadow-lg shadow-sky-900/20 active:scale-[0.98]">
+                        Build Synthetic Strategy
+                    </button>
+                </div>
+            </div>
+
+            <!-- Dashboard Stats -->
+            <div class="glass p-6 rounded-2xl flex flex-col justify-between">
+                <div>
+                    <h2 class="text-xl font-semibold mb-6 text-slate-300">Strategy Output</h2>
+                    <div class="space-y-6">
+                        <div class="border-b border-slate-800 pb-4">
+                            <span class="text-slate-400 text-xs uppercase tracking-widest block mb-1">Net Monthly Income</span>
+                            <span class="text-3xl font-bold text-white" id="statMonthly">--</span>
+                        </div>
+                        <div class="border-b border-slate-800 pb-4">
+                            <span class="text-slate-400 text-xs uppercase tracking-widest block mb-1">Actual Capital Used</span>
+                            <span class="text-2xl font-bold text-sky-400" id="statUsed">--</span>
+                        </div>
+                        <div class="pb-2">
+                            <span class="text-slate-400 text-xs uppercase tracking-widest block mb-1">Annual Yield (ROE)</span>
+                            <span class="text-4xl font-black text-emerald-400" id="statYield">--</span>
+                        </div>
+                    </div>
+                </div>
+                <div class="mt-6 p-4 bg-slate-900/50 rounded-xl border border-slate-800">
+                    <div class="flex items-center text-sky-400 text-xs font-bold mb-1">
+                        <i class="fas fa-info-circle mr-2"></i> LEAP SPECIFICATION
+                    </div>
+                    <p class="text-[10px] text-slate-500 leading-relaxed">
+                        Calculated using 0.90 Delta strikes with ~500 Days to Expiration. Premium projections assume 7-10 DTE short calls.
+                    </p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Strategy Table -->
+        <div class="glass rounded-2xl overflow-hidden mb-12 shadow-2xl">
+            <div class="p-6 border-b border-slate-800 flex justify-between items-center bg-slate-800/10">
+                <h2 class="text-xl font-semibold">Asset Allocation Blueprint</h2>
+                <div id="riskBadge" class="text-[10px] px-3 py-1 rounded-full font-bold uppercase tracking-widest"></div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead class="bg-slate-900/50 text-slate-500 text-[10px] uppercase tracking-widest">
+                        <tr>
+                            <th class="px-6 py-4">Ticker & Sector</th>
+                            <th class="px-6 py-4">Position Size</th>
+                            <th class="px-6 py-4">Long LEAP (Synthetic)</th>
+                            <th class="px-6 py-4">Short Call (Income)</th>
+                            <th class="px-6 py-4">Est. Weekly</th>
+                        </tr>
+                    </thead>
+                    <tbody id="strategyBody" class="divide-y divide-slate-800/50"></tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Technical Legend -->
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 pb-12">
+            <div class="glass p-6 rounded-2xl border-t-2 border-emerald-500/50">
+                <h3 class="font-bold mb-4 text-emerald-400 text-xs uppercase tracking-widest flex items-center">
+                    <i class="fas fa-chart-line mr-2"></i> Purchase Signals
+                </h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-slate-900/50 p-3 rounded-lg border border-slate-800">
+                        <div class="text-[10px] text-slate-500 mb-1 uppercase">RSI Timing</div>
+                        <div class="text-sm font-semibold">Buy if RSI < 40</div>
+                    </div>
+                    <div class="bg-slate-900/50 p-3 rounded-lg border border-slate-800">
+                        <div class="text-[10px] text-slate-500 mb-1 uppercase">Volatility</div>
+                        <div class="text-sm font-semibold">Lower BB Touch</div>
+                    </div>
+                </div>
+            </div>
+            <div class="glass p-6 rounded-2xl border-t-2 border-rose-500/50">
+                <h3 class="font-bold mb-4 text-rose-400 text-xs uppercase tracking-widest flex items-center">
+                    <i class="fas fa-clock mr-2"></i> Sale Signals
+                </h3>
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="bg-slate-900/50 p-3 rounded-lg border border-slate-800">
+                        <div class="text-[10px] text-slate-500 mb-1 uppercase">Momentum</div>
+                        <div class="text-sm font-semibold">Sell if RSI > 70</div>
+                    </div>
+                    <div class="bg-slate-900/50 p-3 rounded-lg border border-slate-800">
+                        <div class="text-[10px] text-slate-500 mb-1 uppercase">Price Action</div>
+                        <div class="text-sm font-semibold">Upper BB Pierce</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const marketData = {
+            AMZN: { price: 230, iv: 32, sector: 'Tech' },
+            NVDA: { price: 189, iv: 58, sector: 'Tech' },
+            MSFT: { price: 483, iv: 24, sector: 'Tech' },
+            LLY: { price: 1040, iv: 38, sector: 'Health' },
+            VRT: { price: 112, iv: 55, sector: 'Industrial' },
+            CRC: { price: 62, iv: 48, sector: 'Energy' }
+        };
+
+        function generateStrategy() {
+            const input = document.getElementById('tickerInput').value;
+            const tickers = input.split(',').map(t => t.trim().toUpperCase()).slice(0, 6);
+            const totalBudget = parseFloat(document.getElementById('totalCapitalInput').value) || 20000;
+            const risk = document.getElementById('riskProfile').value;
+            const isAggressive = risk === 'aggressive';
+            
+            const badge = document.getElementById('riskBadge');
+            badge.innerText = isAggressive ? 'Aggressive Yield (0.35Δ)' : 'Conservative Income (0.12Δ)';
+            badge.className = isAggressive ? 'text-[10px] px-3 py-1 rounded-full font-bold uppercase tracking-widest bg-rose-500/10 text-rose-400 border border-rose-500/20' : 'text-[10px] px-3 py-1 rounded-full font-bold uppercase tracking-widest bg-sky-500/10 text-sky-400 border border-sky-500/20';
+
+            const budgetPerTicker = totalBudget / tickers.length;
+            const tbody = document.getElementById('strategyBody');
+            tbody.innerHTML = '';
+
+            let actualCapitalUsed = 0;
+            let totalMonthlyIncome = 0;
+
+            tickers.forEach(symbol => {
+                const data = marketData[symbol] || { price: 100, iv: 35, sector: 'Other' };
+                
+                // LEAP Logic (0.90 Delta)
+                const leapStrike = Math.floor(data.price * 0.60);
+                const leapPremiumPerShare = (data.price - leapStrike) * 1.05;
+                const costPerContract = leapPremiumPerShare * 100;
+                
+                // Calculate how many contracts fit in the budget per ticker
+                let contractCount = Math.floor(budgetPerTicker / costPerContract);
+                
+                // If the user's budget is very low, they might not afford even 1 contract per ticker
+                // In that case, we show 0 but calculate the cost of 1 for the table if budget allowed
+                const displayCost = contractCount > 0 ? costPerContract * contractCount : 0;
+                actualCapitalUsed += displayCost;
+
+                // Income Logic
+                const delta = isAggressive ? 0.35 : 0.12;
+                const otmFactor = isAggressive ? 1.03 : 1.08;
+                const shortStrike = Math.ceil(data.price * otmFactor);
+                
+                // Simplified premium calculation based on IV and Delta
+                const weeklyPremiumPerContract = (data.price * (data.iv/100) * (delta * 1.75));
+                const totalWeekly = weeklyPremiumPerContract * contractCount;
+                totalMonthlyIncome += (totalWeekly * 4);
+
+                const row = document.createElement('tr');
+                row.className = "hover:bg-slate-800/30 transition-colors group";
+                row.innerHTML = `
+                    <td class="px-6 py-4">
+                        <div class="font-bold text-white group-hover:text-sky-400 transition-colors">${symbol}</div>
+                        <div class="text-[9px] text-slate-500 font-mono">CURR: $${data.price.toFixed(2)}</div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="text-sm font-semibold ${contractCount > 0 ? 'text-white' : 'text-rose-500'}">
+                            ${contractCount} Contract${contractCount !== 1 ? 's' : ''}
+                        </div>
+                        <div class="text-[9px] text-slate-500 uppercase tracking-tighter">${contractCount * 100} Shares Notional</div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="text-xs text-slate-300">Jun '27 $${leapStrike} C</div>
+                        <div class="text-[10px] text-sky-500/80">Premium: $${leapPremiumPerShare.toFixed(2)}</div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="text-xs font-bold text-rose-400/90">$${shortStrike} Call</div>
+                        <div class="text-[9px] text-slate-500">${(delta * 100).toFixed(0)} Delta Target</div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <div class="text-emerald-400 font-mono font-bold">$${Math.round(totalWeekly).toLocaleString()}</div>
+                        <div class="text-[9px] text-slate-500 uppercase">Per Week</div>
+                    </td>
+                `;
+                tbody.appendChild(row);
+            });
+
+            // Update Global Stats
+            document.getElementById('statUsed').innerText = `$${Math.round(actualCapitalUsed).toLocaleString()}`;
+            document.getElementById('statMonthly').innerText = `$${Math.round(totalMonthlyIncome).toLocaleString()}`;
+            
+            const annualYield = actualCapitalUsed > 0 ? ((totalMonthlyIncome * 12) / actualCapitalUsed) * 100 : 0;
+            const yieldEl = document.getElementById('statYield');
+            yieldEl.innerText = `${annualYield.toFixed(1)}%`;
+            yieldEl.className = annualReturnClass(annualYield);
+        }
+
+        function annualReturnClass(val) {
+            if (val >= 24) return "text-4xl font-black text-emerald-400";
+            if (val > 0) return "text-4xl font-black text-amber-400";
+            return "text-4xl font-black text-slate-600";
+        }
+
+        window.onload = generateStrategy;
+    </script>
+</body>
+</html>
